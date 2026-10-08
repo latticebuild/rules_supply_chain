@@ -13,9 +13,9 @@ filegroup(
 test_suite(
     name = "test",
     tests = [
-        "//rust:build_doc",
-        "//rust:linked_doc",
-        "//rust:macro_doc",
+        "//rust:build_test",
+        "//rust:linked_test",
+        "//rust:macro_test",
         "//rust:passing_test",
     ],
 )

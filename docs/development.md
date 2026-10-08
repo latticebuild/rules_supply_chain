@@ -30,6 +30,6 @@ open deeply nested runfiles. Locally, select a short writable root with
 `bazel --output_user_root=C:/b test //:test` when needed. Documentation and
 example scripts accept the same root through BAZEL_OUTPUT_USER_ROOT.
 
-Rust doctest targets use compact names (`linked_doc`, `build_doc`, `macro_doc`)
+Rust doctest targets use compact names (`linked_test`, `build_test`, `macro_test`)
 to leave room for the longest standard-library filename in Windows runfiles.
 These are test rules; all three remain in the root and consumer test suites.

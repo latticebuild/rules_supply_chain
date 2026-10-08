@@ -111,17 +111,17 @@ filegroup(
 )
 
 rust_doc_test(
-    name = "linked_doc",
+    name = "linked_test",
     crate = ":linked",
 )
 
 rust_doc_test(
-    name = "build_doc",
+    name = "build_test",
     crate = ":build_only",
 )
 
 rust_doc_test(
-    name = "macro_doc",
+    name = "macro_test",
     crate = ":passthrough",
 )
 
