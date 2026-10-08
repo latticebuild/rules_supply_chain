@@ -1,3 +1,6 @@
 common --enable_bzlmod
 build --enable_runfiles
 test --test_output=errors
+
+# Use the downloaded sysroot so rustdoc resolves standard libraries at test time.
+build --@rules_rust//rust/settings:toolchain_generated_sysroot=false
