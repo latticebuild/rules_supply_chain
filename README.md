@@ -1,5 +1,9 @@
 # rules_supply_chain
 
+[![CI](https://github.com/latticebuild/rules_supply_chain/actions/workflows/ci.yml/badge.svg)](https://github.com/latticebuild/rules_supply_chain/actions/workflows/ci.yml)
+[![Bazel](https://img.shields.io/badge/Bazel-9.2.0-43A047?logo=bazel&logoColor=white)](MODULE.bazel)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
 Bazel rules for advisory indexing, dependency policy checks and third-party notices. Metadata, license policy and advisory inputs belong to the caller.
 
 ## Setup
@@ -41,6 +45,19 @@ reviewed license texts, advisory exceptions and allowed source URLs. The notice
 aspect follows Rust dependencies and proc-macro edges while excluding Cargo
 build-script dependencies. Bundled SPDX data retains its upstream licensing
 under [the checker’s assets](supply_chain/private/tools/check-packages/assets/spdx/).
+
+<details>
+<summary>Repository map</summary>
+
+| Area | Location |
+| --- | --- |
+| Public API | [supply_chain/defs.bzl](supply_chain/defs.bzl) |
+| Implementation | [supply_chain/private/](supply_chain/private/) |
+| Examples and fixtures | [testdata/](testdata/) |
+| Owning checks | [tests/](tests/) |
+| Consumer guide | [docs/usage.md](docs/usage.md) |
+
+</details>
 
 ## Development
 
