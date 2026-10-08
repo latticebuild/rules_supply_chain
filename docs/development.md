@@ -24,3 +24,8 @@ Rust examples use the downloaded toolchain sysroot. The generated sysroot mode
 in rules_rust 0.74.0 passes an execroot-relative path to Windows rustdoc tests;
 the downloaded sysroot lets rustdoc locate the same standard libraries from
 its runfiles executable. Every doctest still compiles, links and runs.
+
+CI uses a short Bazel output root on Windows (`D:/b`) so native linkers can
+open deeply nested runfiles. Locally, select a short writable root with
+`bazel --output_user_root=C:/b test //:test` when needed. Documentation and
+example scripts accept the same root through BAZEL_OUTPUT_USER_ROOT.
