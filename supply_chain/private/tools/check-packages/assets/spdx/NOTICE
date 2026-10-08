@@ -1,0 +1,12 @@
+The licence and exception inventories are generated SPDX License List Data
+3.28.0, maintained by the SPDX Legal Team:
+https://github.com/spdx/license-list-data/tree/v3.28.0
+https://github.com/spdx/license-list-XML/tree/v3.28.0
+
+The data repository describes its source and licensing provenance at:
+https://github.com/spdx/license-list-data/blob/v3.28.0/README.md#licensing-information
+
+The compatibility identifiers, GNU flags, LAX aliases and parsing/evaluation
+behavior are derived from spdx 0.13.5 by Embark Studios and contributors,
+licensed under Apache-2.0. Its licence is included as spdx-LICENSE-APACHE.
+Source digests and retrieval URLs are recorded in provenance.json.

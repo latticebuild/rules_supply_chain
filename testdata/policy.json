@@ -1,0 +1,16 @@
+{
+  "licenses": {
+    "allow": ["MIT"],
+    "overrides": [
+      {
+        "package": "pkg:npm/altered",
+        "expression": "MIT",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "reason": "Pins a text the fixture's licence file does not have."
+      }
+    ]
+  },
+  "sources": {
+    "allow-git": ["https://github.com/example/allowed"]
+  }
+}

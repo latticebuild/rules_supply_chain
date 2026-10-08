@@ -1,0 +1,10 @@
+{
+  "id": "FIXTURE-0003",
+  "summary": "fixture npm advisory outside this source's ecosystem",
+  "affected": [
+    {
+      "package": {"ecosystem": "npm", "name": "vulnerable"},
+      "ranges": [{"type": "ECOSYSTEM", "events": [{"introduced": "0"}]}]
+    }
+  ]
+}

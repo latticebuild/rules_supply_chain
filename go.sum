@@ -1,0 +1,4 @@
+github.com/bazelbuild/rules_go v0.63.0 h1:G/hGy2pBLxlrxbpQBJKdHSLhu3KFIkFsuNg8m59mn3c=
+github.com/bazelbuild/rules_go v0.63.0/go.mod h1:6YghDRf6l3FSiAwncK+Ww9jE1naoQzNq28gaKJeB67I=
+golang.org/x/mod v0.41.0 h1:qJmnOUb4YB+FsEuM3HcWucdZASCPGhsX6uljO6pog0c=
+golang.org/x/mod v0.41.0/go.mod h1:Ek9pY8RKWXwsWvd3rQiHYtMqkjSUV+s1Rj7j4H5Ur6o=

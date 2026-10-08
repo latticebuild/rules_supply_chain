@@ -1,0 +1,26 @@
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+# The implementation of //supply_chain:defs.bzl.
+# Starlark library dependency graph.
+
+bzl_library(
+    name = "advisory_index_bzl",
+    srcs = ["advisory_index.bzl"],
+    visibility = ["//:__subpackages__"],
+)
+
+bzl_library(
+    name = "supply_chain_test_bzl",
+    srcs = ["supply_chain_test.bzl"],
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "@package_metadata//providers:package_metadata_info.bzl",
+        "@rules_bound//bound:defs",
+    ],
+)
+
+bzl_library(
+    name = "third_party_notices_bzl",
+    srcs = ["third_party_notices.bzl"],
+    visibility = ["//:__subpackages__"],
+    deps = ["@package_metadata//providers:package_metadata_info.bzl"],
+)

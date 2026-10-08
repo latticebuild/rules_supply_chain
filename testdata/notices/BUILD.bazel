@@ -1,0 +1,148 @@
+load("@package_metadata//:defs.bzl", "package_metadata")
+load("@package_metadata//licenses:defs.bzl", "license")
+load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_doc_test", "rust_library", "rust_proc_macro")
+load("//supply_chain:defs.bzl", "advisory_index", "supply_chain_test", "third_party_notices")
+
+package(
+    default_testonly = True,
+    default_visibility = [
+        "//:__pkg__",
+        "//tests:__pkg__",
+    ],
+)
+
+license(
+    name = "own_license",
+    kind = "@package_metadata//licenses/spdx:MIT",
+    text = "LICENSE.fixture",
+)
+
+license(
+    name = "dependency_license",
+    kind = "@package_metadata//licenses/spdx:MIT",
+    text = "DEPENDENCY.fixture",
+)
+
+package_metadata(
+    name = "own_metadata",
+    attributes = [":own_license"],
+    purl = "pkg:cargo/fixture-program@1.0.0",
+)
+
+package_metadata(
+    name = "linked_metadata",
+    attributes = [":dependency_license"],
+    purl = "pkg:cargo/a-linked@1.0.0",
+)
+
+package_metadata(
+    name = "macro_metadata",
+    attributes = [":dependency_license"],
+    purl = "pkg:cargo/z-macro@1.0.0",
+)
+
+package_metadata(
+    name = "build_metadata",
+    attributes = [":dependency_license"],
+    purl = "pkg:cargo/build-only@1.0.0",
+)
+
+rust_library(
+    name = "linked",
+    srcs = ["linked.rs"],
+    crate_name = "linked",
+    package_metadata = [":linked_metadata"],
+)
+
+rust_library(
+    name = "build_only",
+    srcs = ["build_only.rs"],
+    crate_name = "build_only",
+    package_metadata = [":build_metadata"],
+)
+
+rust_proc_macro(
+    name = "passthrough",
+    srcs = ["macro.rs"],
+    crate_name = "passthrough",
+    package_metadata = [":macro_metadata"],
+)
+
+cargo_build_script(
+    name = "build_script",
+    srcs = ["build.rs"],
+    crate_name = "fixture_build",
+    package_metadata = [":build_metadata"],
+    deps = [":build_only"],
+)
+
+rust_binary(
+    name = "program",
+    srcs = ["main.rs"],
+    crate_name = "fixture_program",
+    package_metadata = [":own_metadata"],
+    proc_macro_deps = [":passthrough"],
+    deps = [
+        ":build_script",
+        ":linked",
+    ],
+)
+
+third_party_notices(
+    name = "notices",
+    package = "fixture-program",
+    policy = "policy.json",
+    program = ":program",
+    title = "Fixture",
+)
+
+filegroup(
+    name = "own_output",
+    srcs = [":notices"],
+    output_group = "license",
+)
+
+filegroup(
+    name = "notice_output",
+    srcs = [":notices"],
+    output_group = "notices",
+)
+
+rust_doc_test(
+    name = "linked_docs_test",
+    crate = ":linked",
+)
+
+rust_doc_test(
+    name = "build_docs_test",
+    crate = ":build_only",
+)
+
+rust_doc_test(
+    name = "macro_docs_test",
+    crate = ":passthrough",
+)
+
+advisory_index(
+    name = "advisories",
+    sources = {":advisory_data": "crates.io"},
+)
+
+filegroup(
+    name = "advisory_data",
+    srcs = ["advisory.json"],
+)
+
+supply_chain_test(
+    name = "passing_test",
+    advisories = ":advisories",
+    packages = [
+        ":linked_metadata",
+        ":macro_metadata",
+        ":own_metadata",
+    ],
+    policy = "policy.json",
+)
+
+exports_files(["LICENSE.fixture"])

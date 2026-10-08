@@ -1,0 +1,11 @@
+{
+  "id": "FIXTURE-0002",
+  "summary": "fixture advisory that was withdrawn",
+  "withdrawn": "2026-01-01T00:00:00Z",
+  "affected": [
+    {
+      "package": {"ecosystem": "crates.io", "name": "vulnerable"},
+      "ranges": [{"type": "SEMVER", "events": [{"introduced": "0.0.0-0"}]}]
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "go.mod",
+    "go.sum",
+])
+
+test_suite(
+    name = "test",
+    tests = [
+        "//supply_chain/private/tools/check-packages:spdx_test",
+        "//supply_chain/private/tools/check-packages:unit_test",
+        "//supply_chain/private/tools/index-advisories:unit_test",
+        "//supply_chain/private/tools/internal/metadata:unit_test",
+        "//supply_chain/private/tools/internal/osv:unit_test",
+        "//supply_chain/private/tools/internal/policy:unit_test",
+        "//supply_chain/private/tools/internal/purl:unit_test",
+        "//supply_chain/private/tools/replay-verdict:unit_test",
+        "//supply_chain/private/tools/write-notices:unit_test",
+        "//testdata/notices:build_docs_test",
+        "//testdata/notices:linked_docs_test",
+        "//testdata/notices:macro_docs_test",
+        "//testdata/notices:passing_test",
+        "//tests:check_test",
+        "//tests:notices_test",
+    ],
+)
+
+test_suite(
+    name = "race_test",
+    tests = [
+        "//supply_chain/private/tools/check-packages:spdx_race_test",
+        "//supply_chain/private/tools/check-packages:unit_race_test",
+        "//supply_chain/private/tools/index-advisories:unit_race_test",
+        "//supply_chain/private/tools/internal/metadata:unit_race_test",
+        "//supply_chain/private/tools/internal/osv:unit_race_test",
+        "//supply_chain/private/tools/internal/policy:unit_race_test",
+        "//supply_chain/private/tools/internal/purl:unit_race_test",
+        "//supply_chain/private/tools/replay-verdict:unit_race_test",
+        "//supply_chain/private/tools/write-notices:unit_race_test",
+    ],
+)
+
+filegroup(
+    name = "artifacts",
+    testonly = True,
+    srcs = [
+        "//supply_chain:defs",
+        "//supply_chain/private/tools/replay-verdict",
+    ] + select({
+        "@platforms//os:windows": [],
+        "//conditions:default": [
+            "//supply_chain/private/tools/check-packages",
+            "//supply_chain/private/tools/index-advisories",
+            "//supply_chain/private/tools/write-notices",
+            "//testdata/notices",
+            "//testdata/notices:advisories",
+            "//testdata/notices:program",
+        ],
+    }),
+)

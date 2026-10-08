@@ -1,0 +1,15 @@
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+
+package(default_visibility = ["//visibility:private"])
+# Starlark library dependency graph.
+
+bzl_library(
+    name = "defs",
+    srcs = ["defs.bzl"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//supply_chain/private:advisory_index_bzl",
+        "//supply_chain/private:supply_chain_test_bzl",
+        "//supply_chain/private:third_party_notices_bzl",
+    ],
+)

@@ -1,0 +1,75 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_test")
+
+go_binary(
+    name = "index-advisories",
+    srcs = [
+        "index.go",
+        "main.go",
+    ],
+    pure = "on",
+    target_compatible_with = select({
+        "@platforms//os:linux": [],
+        "@platforms//os:macos": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//supply_chain/private/tools/internal/cli:lib",
+        "//supply_chain/private/tools/internal/jsondata:lib",
+        "//supply_chain/private/tools/internal/osv:lib",
+    ],
+)
+
+go_test(
+    name = "unit_test",
+    srcs = [
+        "index.go",
+        "index_test.go",
+        "main.go",
+    ],
+    pure = "on",
+    race = "off",
+    target_compatible_with = select({
+        "@platforms//os:linux": [],
+        "@platforms//os:macos": [],
+        "@platforms//os:windows": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
+    deps = [
+        "//supply_chain/private/tools/internal/cli:lib",
+        "//supply_chain/private/tools/internal/jsondata:lib",
+        "//supply_chain/private/tools/internal/osv:lib",
+        "//supply_chain/private/tools/internal/testfs:lib",
+    ],
+)
+
+go_test(
+    name = "unit_race_test",
+    srcs = [
+        "index.go",
+        "index_test.go",
+        "main.go",
+    ],
+    pure = "off",
+    race = "on",
+    target_compatible_with = select({
+        "@platforms//os:linux": [],
+        "@platforms//os:macos": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
+    deps = [
+        "//supply_chain/private/tools/internal/cli:lib",
+        "//supply_chain/private/tools/internal/jsondata:lib",
+        "//supply_chain/private/tools/internal/osv:lib",
+        "//supply_chain/private/tools/internal/testfs:lib",
+    ],
+)
+
+test_suite(
+    name = "runtime_test",
+    tests = [
+        ":unit_race_test",
+        ":unit_test",
+    ],
+    visibility = ["//supply_chain/private/tools:__pkg__"],
+)

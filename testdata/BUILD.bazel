@@ -1,0 +1,140 @@
+# Must-fail fixtures for supply_chain_test. Their tests are manual:
+# //tests runs each and expects it to fail with its
+# findings.
+
+load("@package_metadata//:defs.bzl", "package_metadata")
+load("@package_metadata//licenses:defs.bzl", "license", "license_kind")
+load("//supply_chain:defs.bzl", "advisory_index", "supply_chain_test")
+
+package(
+    default_testonly = True,
+    default_visibility = ["//tests:__pkg__"],
+)
+
+# A disallowed licence, no licence, and a licence text that differs from the
+# one its override pinned.
+supply_chain_test(
+    name = "licences_test",
+    advisories = ":advisories",
+    packages = [
+        ":altered",
+        ":disallowed",
+        ":unlicensed",
+    ],
+    policy = "policy.json",
+    tags = ["manual"],
+    target_compatible_with = [],
+)
+
+# A vulnerable version. The index drops the withdrawn advisory and the npm
+# advisory, since this source keeps only crates.io.
+supply_chain_test(
+    name = "advisories_test",
+    advisories = ":advisories",
+    packages = [
+        ":npm_package",
+        ":vulnerable",
+    ],
+    policy = "policy.json",
+    tags = ["manual"],
+    target_compatible_with = [],
+)
+
+# A Git repository the policy does not allow, and a source with no packages.
+supply_chain_test(
+    name = "sources_test",
+    advisories = ":advisories",
+    packages = [
+        ":foreign",
+        ":nothing",
+    ],
+    policy = "policy.json",
+    tags = ["manual"],
+    target_compatible_with = [],
+)
+
+advisory_index(
+    name = "advisories",
+    sources = {":advisory_files": "crates.io"},
+    target_compatible_with = [],
+    visibility = ["//visibility:private"],
+)
+
+filegroup(
+    name = "advisory_files",
+    srcs = glob(["advisories/*.json"]),
+    visibility = ["//visibility:private"],
+)
+
+filegroup(
+    name = "nothing",
+    srcs = [],
+    visibility = ["//visibility:private"],
+)
+
+package_metadata(
+    name = "disallowed",
+    attributes = [":gpl"],
+    purl = "pkg:npm/disallowed@1.0.0",
+    visibility = ["//visibility:private"],
+)
+
+license(
+    name = "gpl",
+    kind = "@package_metadata//licenses/spdx:GPL-3.0-only",
+    visibility = ["//visibility:private"],
+)
+
+package_metadata(
+    name = "unlicensed",
+    purl = "pkg:npm/unlicensed@1.0.0",
+    visibility = ["//visibility:private"],
+)
+
+package_metadata(
+    name = "altered",
+    attributes = [":altered_license"],
+    purl = "pkg:npm/altered@1.0.0",
+    visibility = ["//visibility:private"],
+)
+
+license(
+    name = "altered_license",
+    kind = ":noassertion",
+    text = "altered-LICENSE",
+    visibility = ["//visibility:private"],
+)
+
+license_kind(
+    name = "noassertion",
+    full_name = "NOASSERTION",
+    identifier = "NOASSERTION",
+    visibility = ["//visibility:private"],
+)
+
+package_metadata(
+    name = "vulnerable",
+    attributes = [":mit"],
+    purl = "pkg:cargo/vulnerable@1.0.0",
+    visibility = ["//visibility:private"],
+)
+
+package_metadata(
+    name = "npm_package",
+    attributes = [":mit"],
+    purl = "pkg:npm/vulnerable@1.0.0",
+    visibility = ["//visibility:private"],
+)
+
+package_metadata(
+    name = "foreign",
+    attributes = [":mit"],
+    purl = "pkg:cargo/foreign@1.0.0?vcs_url=git%2Bhttps://github.com/example/foreign.git@0123456789abcdef",
+    visibility = ["//visibility:private"],
+)
+
+license(
+    name = "mit",
+    kind = "@package_metadata//licenses/spdx:MIT",
+    visibility = ["//visibility:private"],
+)

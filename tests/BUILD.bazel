@@ -1,0 +1,44 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_test")
+
+package(default_testonly = True)
+
+go_test(
+    name = "check_test",
+    srcs = ["check_test.go"],
+    data = [
+        "//testdata:advisories_test",
+        "//testdata:licences_test",
+        "//testdata:sources_test",
+    ],
+    env = {
+        "LATTICEBUILD_TEST_ADVISORIES": "$(rlocationpath //testdata:advisories_test)",
+        "LATTICEBUILD_TEST_LICENCES": "$(rlocationpath //testdata:licences_test)",
+        "LATTICEBUILD_TEST_SOURCES": "$(rlocationpath //testdata:sources_test)",
+    },
+    pure = "on",
+    target_compatible_with = select({
+        "@platforms//os:windows": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+    deps = ["@io_bazel_rules_go//go/runfiles"],
+)
+
+go_test(
+    name = "notices_test",
+    srcs = ["notices_test.go"],
+    data = [
+        "//testdata/notices:LICENSE.fixture",
+        "//testdata/notices:notice_output",
+        "//testdata/notices:own_output",
+    ],
+    env = {
+        "OWN_OUTPUT": "$(rlocationpath //testdata/notices:own_output)",
+        "NOTICE_OUTPUT": "$(rlocationpath //testdata/notices:notice_output)",
+        "OWN_SOURCE": "$(rlocationpath //testdata/notices:LICENSE.fixture)",
+    },
+    target_compatible_with = select({
+        "@platforms//os:windows": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+    deps = ["@io_bazel_rules_go//go/runfiles"],
+)

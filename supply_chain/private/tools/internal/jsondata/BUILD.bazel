@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "lib",
+    srcs = [
+        "json.go",
+    ],
+    importpath = "github.com/latticebuild/rules_supply_chain/supply_chain/private/tools/internal/jsondata",
+    target_compatible_with = select({
+        "@platforms//os:linux": [],
+        "@platforms//os:macos": [],
+        "@platforms//os:windows": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
+    visibility = ["//supply_chain/private/tools:__subpackages__"],
+)
