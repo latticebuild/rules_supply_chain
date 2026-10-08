@@ -1,7 +1,7 @@
 """Collect package metadata, record a policy verdict, and bind its replay test."""
 
+load("@io_bazel_rules_go//go:def.bzl", "GoInfo", "go_context", "go_rule", "new_go_info")
 load("@package_metadata//providers:package_metadata_info.bzl", "PackageMetadataInfo")
-load("@rules_bound//bound:defs.bzl", "BOUND_TOOLCHAIN_TYPE", "bound_context")
 
 visibility("//...")
 
@@ -32,6 +32,42 @@ _packages_aspect = aspect(
     doc = "Collects the package_metadata of a target and of its filegroup srcs.",
 )
 
+def _pure_replay_impl(_settings, _attr):
+    return {
+        "@io_bazel_rules_go//go/config:pure": True,
+        "@io_bazel_rules_go//go/config:race": False,
+        "@io_bazel_rules_go//go/config:msan": False,
+    }
+
+_pure_replay = transition(
+    implementation = _pure_replay_impl,
+    inputs = [],
+    outputs = [
+        "@io_bazel_rules_go//go/config:pure",
+        "@io_bazel_rules_go//go/config:race",
+        "@io_bazel_rules_go//go/config:msan",
+    ],
+)
+
+_ReplayContextInfo = provider(
+    doc = "Pure Go context data selected for the test execution platform.",
+    fields = {"context": "The pure Go context data on the test execution platform."},
+)
+
+def _replay_source_impl(ctx):
+    return [ctx.attr.source[GoInfo], _ReplayContextInfo(context = ctx.attr._go_context_data)]
+
+replay_source = rule(
+    implementation = _replay_source_impl,
+    cfg = _pure_replay,
+    attrs = {
+        "source": attr.label(providers = [GoInfo], mandatory = True),
+        "_go_context_data": attr.label(default = Label("@io_bazel_rules_go//:go_context_data")),
+        "_allowlist_function_transition": attr.label(default = Label("@bazel_tools//tools/allowlists/function_transition_allowlist")),
+    },
+    provides = [GoInfo, _ReplayContextInfo],
+)
+
 def _supply_chain_test_impl(ctx):
     sources = []
     files = []
@@ -49,8 +85,8 @@ def _supply_chain_test_impl(ctx):
         "policy": ctx.file.policy.path,
         "sources": sources,
     }))
-    report = ctx.actions.declare_file(ctx.label.name + ".report.txt")
-    status = ctx.actions.declare_file(ctx.label.name + ".status")
+    report = ctx.actions.declare_file(ctx.label.name + ".verdict/report.txt")
+    status = ctx.actions.declare_file(ctx.label.name + ".verdict/status")
     ctx.actions.run(
         executable = ctx.executable._check,
         arguments = ["--manifest", manifest.path, "--report", report.path, "--status", status.path],
@@ -60,14 +96,51 @@ def _supply_chain_test_impl(ctx):
         progress_message = "Checking the supply chain for %{label}",
     )
 
-    # Replay is built for the test platform.
-    result = bound_context(ctx).bind(ctx.attr._replay, bundle = "private", args = ["--report", report, "--status", status])
+    # The verdict is part of the native test executable; replay never extracts it.
+    generated = ctx.actions.declare_file(ctx.label.name + ".verdict/embed.go")
+    ctx.actions.write(generated, """package main
+import _ "embed"
+//go:embed report.txt
+var embeddedReport []byte
+//go:embed status
+var embeddedStatus []byte
+func init() { embeddedVerdict = &verdictData{report: embeddedReport, status: embeddedStatus} }
+""")
+    replay = ctx.attr._replay[GoInfo]
+    go = go_context(
+        ctx,
+        embed = [ctx.attr._replay],
+        go_context_data = ctx.attr._replay[_ReplayContextInfo].context,
+        goos = replay.mode.goos,
+        goarch = replay.mode.goarch,
+        maybe_needs_cc_toolchain = False,
+    )
+
+    if go.mode != replay.mode:
+        fail("replay source and test compiler modes must match")
+
+    def verdict_inputs(_go, _attr, source, _merge):
+        source["embedsrcs"].extend([report, status])
+
+    source = new_go_info(
+        go,
+        struct(embed = [ctx.attr._replay]),
+        generated_srcs = [generated],
+        resolver = verdict_inputs,
+        importable = False,
+        is_main = True,
+    )
+    archive, executable, runfiles = go.binary(go, name = ctx.label.name, source = source)
     return [
-        DefaultInfo(executable = result.executable),
-        RunEnvironmentInfo(environment = {"BOUND_CACHE": "0"}),
+        DefaultInfo(executable = executable, runfiles = runfiles),
+        OutputGroupInfo(
+            compilation_outputs = depset([archive.data.file]),
+            _validation = depset([archive.data._validation_output] if archive.data._validation_output else []),
+            nogo_fix = depset([archive.data._nogo_diagnostics] if archive.data._nogo_diagnostics else []),
+        ),
     ]
 
-supply_chain_test = rule(
+supply_chain_test = go_rule(
     implementation = _supply_chain_test_impl,
     doc = """Checks the licence, advisories and source of third-party packages.
 
@@ -96,10 +169,10 @@ supply_chain_test = rule(
         "_check": attr.label(default = Label("//supply_chain/private/tools/check-packages"), executable = True, cfg = "exec"),
         # Replay retains the existing test execution configuration.
         "_replay": attr.label(
-            default = Label("//supply_chain/private/tools/replay-verdict"),
-            executable = True,
+            default = Label("//supply_chain/private/tools/replay-verdict:source_context"),
+            providers = [GoInfo],
             cfg = config.exec("test"),
         ),
+        "_nogo": attr.label(default = Label("@io_bazel_rules_nogo//:nogo"), cfg = "exec"),
     },
-    toolchains = [BOUND_TOOLCHAIN_TYPE],
 )

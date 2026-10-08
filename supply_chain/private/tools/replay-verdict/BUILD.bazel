@@ -1,4 +1,5 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+load("//supply_chain/private:supply_chain_test.bzl", "replay_source")
 
 go_binary(
     name = "replay-verdict",
@@ -56,4 +57,22 @@ test_suite(
         ":unit_test",
     ],
     visibility = ["//supply_chain/private/tools:__pkg__"],
+)
+
+go_library(
+    name = "source",
+    srcs = [
+        "main.go",
+        "replay.go",
+    ],
+    importpath = "github.com/latticebuild/rules_supply_chain/supply_chain/private/tools/replay-verdict",
+    target_compatible_with = [],
+    visibility = ["//:__subpackages__"],
+    deps = ["//supply_chain/private/tools/internal/cli:lib"],
+)
+
+replay_source(
+    name = "source_context",
+    source = ":source",
+    visibility = ["//:__subpackages__"],
 )

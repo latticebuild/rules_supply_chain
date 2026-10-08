@@ -67,3 +67,206 @@ jobs:
       - name: Race tests
         if: runner.os != 'Windows' && steps.gates.outputs.race == 'true'
         run: bazel --output_user_root="$BAZEL_OUTPUT_USER_ROOT" test //:race_test
+  consumer:
+    name: BCR consumer (native Linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          version: 2026.10.3
+      - name: Record the consumer source
+        run: |
+          mkdir -p "$RUNNER_TEMP/consumer-evidence"
+          git rev-parse HEAD > "$RUNNER_TEMP/consumer-evidence/source-head.txt"
+          test "$(cat "$RUNNER_TEMP/consumer-evidence/source-head.txt")" = "$GITHUB_SHA"
+          git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/consumer-evidence/source-tree.txt"
+          git status --porcelain > "$RUNNER_TEMP/consumer-evidence/source-status-before.txt"
+          test ! -s "$RUNNER_TEMP/consumer-evidence/source-status-before.txt"
+          printf 'CONSUMER_ROOT=%s/bcr_test\n' "$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+          printf 'BAZEL_OUTPUT_USER_ROOT=%s/consumer-bazel\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          uname -a
+          nproc
+          cat bcr_test/.bazelrc
+      - name: Prepare native Linux sandbox
+        run: |
+          diagnostics="$RUNNER_TEMP/consumer-evidence/host"
+          mkdir -p "$diagnostics"
+          id > "$diagnostics/identity.log"
+          uname -a > "$diagnostics/kernel.log"
+          sysctl kernel.unprivileged_userns_clone kernel.apparmor_restrict_unprivileged_userns user.max_user_namespaces \
+            > "$diagnostics/userns.log" 2>&1 || printf 'Some diagnostic sysctls are unavailable.\n' >> "$diagnostics/userns.log"
+          sudo aa-status | tee "$diagnostics/apparmor.log"
+          install_base=$(bazel --batch --ignore_all_rc_files --output_user_root="$BAZEL_OUTPUT_USER_ROOT" info install_base)
+          install_base=$(realpath "$install_base")
+          root=$(realpath "$BAZEL_OUTPUT_USER_ROOT")
+          [[ "$(dirname "$install_base")" == "$root/install" ]]
+          [[ "$(basename "$install_base")" =~ ^[0-9a-f]{32}$ ]]
+          sandbox="$install_base/linux-sandbox"
+          [[ -f "$sandbox" && ! -L "$sandbox" && "$(id -u)" != 0 ]]
+          sha256sum "$sandbox" > "$diagnostics/linux-sandbox.sha256"
+          if ! "$sandbox" -- /bin/true > "$diagnostics/probe-before.log" 2>&1; then
+            sudo journalctl -k --no-pager --since '-5 min' | tee "$diagnostics/kernel-denials-before.log"
+            # Ubuntu's per-application userns permission; global restrictions stay enabled.
+            sudo chown root:root "$sandbox"
+            sudo chmod 0555 "$sandbox"
+            sudo python3 - "$sandbox" <<'PY'
+          import os, sys
+          os.setxattr(sys.argv[1], 'security.apparmor', b'trusted')
+          assert os.getxattr(sys.argv[1], 'security.apparmor') == b'trusted'
+          PY
+            printf 'abi <abi/4.0>,\ninclude <tunables/global>\nprofile latticebuild-bazel-sandbox "%s" xattrs=(security.apparmor="trusted") flags=(unconfined) {\n  userns,\n}\n' "$sandbox" \
+              > "$diagnostics/apparmor-profile"
+            sudo install -m 0644 "$diagnostics/apparmor-profile" /etc/apparmor.d/latticebuild-bazel-sandbox
+            sudo apparmor_parser -r /etc/apparmor.d/latticebuild-bazel-sandbox
+          fi
+          if ! "$sandbox" -- /bin/true > "$diagnostics/probe-after.log" 2>&1; then
+            sudo journalctl -k --no-pager --since '-5 min' | tee "$diagnostics/kernel-denials.log"
+            cat "$diagnostics/probe-after.log"
+            exit 1
+          fi
+          sha256sum --check "$diagnostics/linux-sandbox.sha256"
+          stat "$sandbox" > "$diagnostics/linux-sandbox.stat"
+          printf 'BCR_INSTALL_BASE=%s\n' "$install_base" >> "$GITHUB_ENV"
+      - name: Build the consumer with BCR Linux sandbox settings
+        run: |
+          cd "$CONSUMER_ROOT"
+          set +e
+          bazel --nosystem_rc --nohome_rc --output_user_root="$BAZEL_OUTPUT_USER_ROOT" --install_base="$BCR_INSTALL_BASE" build //:artifacts \
+            --sandbox_tmpfs_path=/tmp --disk_cache= --jobs="$(nproc)" \
+            --experimental_repository_cache_hardlinks --verbose_failures --announce_rc \
+            --lockfile_mode=off --test_env=HOME --spawn_strategy=linux-sandbox \
+            --execution_log_json_file="$RUNNER_TEMP/consumer-evidence/build-spawns.json" \
+            --build_event_json_file="$RUNNER_TEMP/consumer-evidence/build-bep.json" \
+            2>&1 | tee "$RUNNER_TEMP/consumer-evidence/build.log"
+          code=${PIPESTATUS[0]}
+          printf '%s\n' "$code" > "$RUNNER_TEMP/consumer-evidence/build-exit-code.txt"
+          exit "$code"
+      - name: Test the consumer with BCR Linux sandbox settings
+        run: |
+          cd "$CONSUMER_ROOT"
+          set +e
+          bazel --nosystem_rc --nohome_rc --output_user_root="$BAZEL_OUTPUT_USER_ROOT" --install_base="$BCR_INSTALL_BASE" test //:test \
+            --sandbox_tmpfs_path=/tmp --disk_cache= --jobs="$(nproc)" --local_test_jobs=12 \
+            --experimental_repository_cache_hardlinks --verbose_failures --announce_rc \
+            --test_env=HOME --test_env=TMP --test_env=TEMP --test_output=all \
+            --lockfile_mode=off --build_tests_only --spawn_strategy=linux-sandbox --strategy=TestRunner=linux-sandbox \
+            --execution_log_json_file="$RUNNER_TEMP/consumer-evidence/test-spawns.json" \
+            --build_event_json_file="$RUNNER_TEMP/consumer-evidence/test-bep.json" \
+            2>&1 | tee "$RUNNER_TEMP/consumer-evidence/test.log"
+          code=${PIPESTATUS[0]}
+          printf '%s\n' "$code" > "$RUNNER_TEMP/consumer-evidence/test-exit-code.txt"
+          exit "$code"
+      - name: Check copied standalone verdict and reject override arguments
+        run: |
+          cd "$CONSUMER_ROOT"
+          executable=$(bazel --nosystem_rc --nohome_rc --output_user_root="$BAZEL_OUTPUT_USER_ROOT" --install_base="$BCR_INSTALL_BASE" cquery //rust:passing_test --output=files --lockfile_mode=off)
+          test -f "$executable"
+          report="$(dirname "$(dirname "$executable")")/passing_test.verdict/report.txt"
+          test -f "$report"
+          mkdir -p "$RUNNER_TEMP/standalone replay"
+          cp "$executable" "$RUNNER_TEMP/standalone replay/verdict"
+          cd "$RUNNER_TEMP/standalone replay"
+          env -u RUNFILES_DIR -u RUNFILES_MANIFEST_FILE -u JAVA_RUNFILES -u TEST_SRCDIR -u TEST_WORKSPACE -u TEST_TMPDIR \
+            TMPDIR=/tmp ./verdict > "$RUNNER_TEMP/consumer-evidence/standalone-report.txt"
+          cmp "$CONSUMER_ROOT/$report" "$RUNNER_TEMP/consumer-evidence/standalone-report.txt"
+          set +e
+          ./verdict --report /tmp/override --status /tmp/override \
+            > "$RUNNER_TEMP/consumer-evidence/override-stdout.txt" 2> "$RUNNER_TEMP/consumer-evidence/override-stderr.txt"
+          code=$?
+          set -e
+          printf '%s\n' "$code" > "$RUNNER_TEMP/consumer-evidence/override-exit-code.txt"
+          test "$code" -eq 1
+          test ! -s "$RUNNER_TEMP/consumer-evidence/override-stdout.txt"
+          python3 - "$RUNNER_TEMP/consumer-evidence/override-stderr.txt" <<'PY'
+          from pathlib import Path
+          import sys
+          assert 'embedded verdict does not accept arguments' in Path(sys.argv[1]).read_text()
+          PY
+      - name: Verify actual native Rust and test spawns
+        run: |
+          git status --porcelain > "$RUNNER_TEMP/consumer-evidence/source-status-after.txt"
+          test ! -s "$RUNNER_TEMP/consumer-evidence/source-status-after.txt"
+          python3 - "$RUNNER_TEMP/consumer-evidence" <<'PY'
+          from pathlib import Path
+          import json, sys
+          root = Path(sys.argv[1])
+          def stream(path):
+              text = path.read_text()
+              decoder = json.JSONDecoder()
+              rows = []
+              position = 0
+              while position < len(text):
+                  if text[position].isspace():
+                      position += 1
+                      continue
+                  row, position = decoder.raw_decode(text, position)
+                  rows.append(row)
+              return rows
+          build = stream(root/'build-spawns.json')
+          tests = stream(root/'test-spawns.json')
+          required = {'//rust:build_test', '//rust:linked_test', '//rust:macro_test', '//rust:passing_test'}
+          def native(row):
+              return row.get('runner') == 'linux-sandbox' and row.get('exitCode') == 0 and row.get('cacheHit', False) is False
+          rust = [r for r in build if r.get('mnemonic') == 'Rustc']
+          go_links = [r for r in build + tests if r.get('mnemonic') == 'GoLink' and r.get('targetLabel') == '//rust:passing_test']
+          assert rust and all(map(native, rust)), 'Missing, cached, failed or non-native Rust compilation'
+          assert len(go_links) == 1 and native(go_links[0]), 'Missing actual native embedded replay link'
+          main_tests = [r for r in tests if r.get('mnemonic') == 'TestRunner' and any(a.endswith('/test-setup.sh') for a in r.get('commandArgs', []))]
+          assert len(main_tests) == 4 and {r.get('targetLabel') for r in main_tests} == required
+          assert all(map(native, main_tests)), 'Missing, cached, failed or non-native test execution'
+          attempts = [json.loads(line) for line in (root/'test-bep.json').read_text().splitlines() if line.strip()]
+          attempts = [r for r in attempts if 'testResult' in r.get('id', {})]
+          assert len(attempts) == 4
+          assert {r['id']['testResult']['label'] for r in attempts} == required
+          for row in attempts:
+              ident = row['id']['testResult']; result = row['testResult']
+              assert (ident['run'], ident['shard'], ident['attempt']) == (1, 1, 1)
+              assert result['status'] == 'PASSED' and not result.get('cachedLocally', False)
+              assert result['executionInfo']['strategy'] == 'linux-sandbox' and result['executionInfo'].get('exitCode', 0) == 0
+          assert (root/'build-exit-code.txt').read_text().strip() == '0'
+          assert (root/'test-exit-code.txt').read_text().strip() == '0'
+          proof = dict(nativeRustSpawns=len(rust), nativeGoLinks=len(go_links), nativeTestTargets=sorted(required), firstAttemptResults=len(attempts),
+                       tmpfsPath='/tmp', sourceTree=(root/'source-tree.txt').read_text().strip(),
+                       source=(root/'source-head.txt').read_text().strip(), runner='linux-sandbox', prototype=False, nativeConsumerPassed=True)
+          (root/'native-spawn-verification.json').write_text(json.dumps(proof, indent=2)+'\n')
+          print(json.dumps(proof, indent=2))
+          PY
+      - name: Shut down the owned Bazel server
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/consumer-evidence"
+          git rev-parse HEAD > "$RUNNER_TEMP/consumer-evidence/source-head-after.txt"
+          git status --porcelain > "$RUNNER_TEMP/consumer-evidence/source-status-final.txt"
+          source_code=0
+          if [[ -s "$RUNNER_TEMP/consumer-evidence/source-status-final.txt" ]] || ! cmp -s "$RUNNER_TEMP/consumer-evidence/source-head.txt" "$RUNNER_TEMP/consumer-evidence/source-head-after.txt"; then
+            source_code=1
+          fi
+          if [[ -n "${CONSUMER_ROOT:-}" && -d "$CONSUMER_ROOT" ]]; then
+            cd "$CONSUMER_ROOT"
+            mkdir -p "$RUNNER_TEMP/consumer-evidence"
+            install_args=()
+            if [[ -n "${BCR_INSTALL_BASE:-}" ]]; then
+              install_args+=("--install_base=$BCR_INSTALL_BASE")
+            fi
+            set +e
+            bazel --nosystem_rc --nohome_rc --output_user_root="$BAZEL_OUTPUT_USER_ROOT" "${install_args[@]}" shutdown \
+              2>&1 | tee "$RUNNER_TEMP/consumer-evidence/shutdown.log"
+            code=${PIPESTATUS[0]}
+            printf '%s\n' "$code" > "$RUNNER_TEMP/consumer-evidence/shutdown-exit-code.txt"
+            if [[ "$code" -ne 0 ]]; then exit "$code"; fi
+          fi
+          exit "$source_code"
+      - name: Retain consumer and host evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bcr-linux-consumer-evidence
+          path: ${{ runner.temp }}/consumer-evidence/
+          retention-days: 30

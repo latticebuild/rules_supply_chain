@@ -142,8 +142,6 @@
     "https://bcr.bazel.build/modules/rules_android/0.7.1/source.json": "151440aed3f0f73a00d4ed5cec5d31f63a6fef9b95d8fab1eb1810150fa525f2",
     "https://bcr.bazel.build/modules/rules_apple/3.16.0/MODULE.bazel": "0d1caf0b8375942ce98ea944be754a18874041e4e0459401d925577624d3a54a",
     "https://bcr.bazel.build/modules/rules_apple/4.1.0/MODULE.bazel": "76e10fd4a48038d3fc7c5dc6e63b7063bbf5304a2e3bd42edda6ec660eebea68",
-    "https://bcr.bazel.build/modules/rules_bound/0.2.1/MODULE.bazel": "67314104a6dcceaf7f55301ceb90597bf6ae4c6cc0df2ad3f6fae3cebc5d9f0e",
-    "https://bcr.bazel.build/modules/rules_bound/0.2.1/source.json": "927f852fa2f9543786f2b5e3ada7e3cd82316f9dd4388cd1f957a8c30ce83d77",
     "https://bcr.bazel.build/modules/rules_cc/0.0.1/MODULE.bazel": "cb2aa0747f84c6c3a78dad4e2049c154f08ab9d166b1273835a8174940365647",
     "https://bcr.bazel.build/modules/rules_cc/0.0.10/MODULE.bazel": "ec1705118f7eaedd6e118508d3d26deba2a4e76476ada7e0e3965211be012002",
     "https://bcr.bazel.build/modules/rules_cc/0.0.13/MODULE.bazel": "0e8529ed7b323dad0775ff924d2ae5af7640b23553dfcd4d34344c7e7a867191",

@@ -32,3 +32,8 @@ Output groups select the own license and ThirdPartyNotices.txt separately.
 Producers run on Linux or macOS. The replay tool and portable Go libraries also
 support Windows; a Windows test platform may replay a verdict produced on a
 supported execution platform. All inputs remain caller-owned and declared.
+
+The supply test embeds its report and status in a standalone native Go executable.
+It can be copied and run without a runfiles tree. Replay prints the original report
+bytes and exits with the recorded status; command-line overrides are rejected.
+The explicit `replay-verdict --report … --status …` development tool remains available.

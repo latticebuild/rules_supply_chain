@@ -13,8 +13,8 @@ bzl_library(
     srcs = ["supply_chain_test.bzl"],
     visibility = ["//:__subpackages__"],
     deps = [
+        "@io_bazel_rules_go//go:def",
         "@package_metadata//providers:package_metadata_info.bzl",
-        "@rules_bound//bound:defs",
     ],
 )
 
