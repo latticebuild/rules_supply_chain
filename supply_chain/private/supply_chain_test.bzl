@@ -96,6 +96,20 @@ def _supply_chain_test_impl(ctx):
         progress_message = "Checking the supply chain for %{label}",
     )
 
+    return replay_verdict(ctx, report, status)
+
+def replay_verdict(ctx, report, status):
+    """Compiles a report and status into a native executable on the test platform.
+
+    Args:
+        ctx: Rule context with REPLAY_ATTRIBUTES and the Go rule toolchain.
+        report: Report File beside embed.go in the target's verdict directory.
+        status: Recorded status File beside embed.go in that directory.
+
+    Returns:
+        Executable DefaultInfo and compilation, analyzer and fix output groups.
+    """
+
     # The verdict is part of the native test executable; replay never extracts it.
     generated = ctx.actions.declare_file(ctx.label.name + ".verdict/embed.go")
     ctx.actions.write(generated, """package main
@@ -140,6 +154,15 @@ func init() { embeddedVerdict = &verdictData{report: embeddedReport, status: emb
         ),
     ]
 
+REPLAY_ATTRIBUTES = {
+    "_replay": attr.label(
+        default = Label("//supply_chain/private/tools/replay-verdict:source_context"),
+        providers = [GoInfo],
+        cfg = config.exec("test"),
+    ),
+    "_nogo": attr.label(default = Label("@io_bazel_rules_nogo//:nogo"), cfg = "exec"),
+}
+
 supply_chain_test = go_rule(
     implementation = _supply_chain_test_impl,
     doc = """Checks the licence, advisories and source of third-party packages.
@@ -149,7 +172,7 @@ supply_chain_test = go_rule(
     `packages` label must contribute at least one package.
     """,
     test = True,
-    attrs = {
+    attrs = REPLAY_ATTRIBUTES | {
         "advisories": attr.label(
             doc = "The `advisory_index` to check against.",
             allow_single_file = [".json"],
@@ -167,12 +190,5 @@ supply_chain_test = go_rule(
             mandatory = True,
         ),
         "_check": attr.label(default = Label("//supply_chain/private/tools/check-packages"), executable = True, cfg = "exec"),
-        # Replay retains the existing test execution configuration.
-        "_replay": attr.label(
-            default = Label("//supply_chain/private/tools/replay-verdict:source_context"),
-            providers = [GoInfo],
-            cfg = config.exec("test"),
-        ),
-        "_nogo": attr.label(default = Label("@io_bazel_rules_nogo//:nogo"), cfg = "exec"),
     },
 )

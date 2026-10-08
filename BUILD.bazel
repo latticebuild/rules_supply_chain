@@ -24,6 +24,7 @@ test_suite(
         "//supply_chain/private/tools/write-notices:unit_test",
         "//tests:check_test",
         "//tests:notices_test",
+        "//tests:replay_test",
     ],
 )
 

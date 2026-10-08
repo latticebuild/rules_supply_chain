@@ -1,4 +1,5 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_test")
+load(":replay_fixture.bzl", "recorded_verdict_test")
 
 package(default_testonly = True)
 
@@ -40,5 +41,34 @@ go_test(
         "@platforms//os:windows": ["@platforms//:incompatible"],
         "//conditions:default": [],
     }),
+    deps = ["@io_bazel_rules_go//go/runfiles"],
+)
+
+recorded_verdict_test(
+    name = "passing_fixture_test",
+    report = "recorded verdict: accepted\n",
+    status = "0\n",
+    tags = ["manual"],
+)
+
+recorded_verdict_test(
+    name = "failing_fixture_test",
+    report = "recorded verdict: refused\n",
+    status = "1\n",
+    tags = ["manual"],
+)
+
+go_test(
+    name = "replay_test",
+    srcs = ["replay_test.go"],
+    data = [
+        ":failing_fixture_test",
+        ":passing_fixture_test",
+    ],
+    env = {
+        "PASSING_VERDICT": "$(rlocationpath :passing_fixture_test)",
+        "FAILING_VERDICT": "$(rlocationpath :failing_fixture_test)",
+    },
+    pure = "on",
     deps = ["@io_bazel_rules_go//go/runfiles"],
 )
