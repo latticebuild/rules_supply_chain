@@ -1,0 +1,5 @@
+{
+  "url": "https://github.com/latticebuild/rules_supply_chain/releases/download/{TAG}/rules_supply_chain-{VERSION}.tar.gz",
+  "integrity": "{INTEGRITY}",
+  "strip_prefix": "rules_supply_chain-{VERSION}"
+}

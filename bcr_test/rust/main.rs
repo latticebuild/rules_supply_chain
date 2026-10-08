@@ -1,4 +1,4 @@
-// Build with bazel build //testdata/notices:program.
+// Build with bazel build //examples/rust:program.
 #[passthrough::keep]
 fn main() {
     assert_eq!(linked::message(), "linked");

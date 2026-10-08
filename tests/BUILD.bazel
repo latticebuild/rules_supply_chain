@@ -27,14 +27,14 @@ go_test(
     name = "notices_test",
     srcs = ["notices_test.go"],
     data = [
-        "//testdata/notices:LICENSE.fixture",
-        "//testdata/notices:notice_output",
-        "//testdata/notices:own_output",
+        "//examples/rust:LICENSE.fixture",
+        "//examples/rust:notice_output",
+        "//examples/rust:own_output",
     ],
     env = {
-        "OWN_OUTPUT": "$(rlocationpath //testdata/notices:own_output)",
-        "NOTICE_OUTPUT": "$(rlocationpath //testdata/notices:notice_output)",
-        "OWN_SOURCE": "$(rlocationpath //testdata/notices:LICENSE.fixture)",
+        "OWN_OUTPUT": "$(rlocationpath //examples/rust:own_output)",
+        "NOTICE_OUTPUT": "$(rlocationpath //examples/rust:notice_output)",
+        "OWN_SOURCE": "$(rlocationpath //examples/rust:LICENSE.fixture)",
     },
     target_compatible_with = select({
         "@platforms//os:windows": ["@platforms//:incompatible"],

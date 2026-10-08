@@ -1,0 +1,27 @@
+package(
+    default_testonly = True,
+    default_visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "artifacts",
+    srcs = ["//examples/rust:program"] + select({
+        "@platforms//os:windows": [],
+        "//conditions:default": [
+            "//examples/rust:notice_output",
+            "//examples/rust:own_output",
+        ],
+    }),
+)
+
+test_suite(
+    name = "test",
+    tests = [
+        "//examples/rust:build_docs_test",
+        "//examples/rust:linked_docs_test",
+        "//examples/rust:macro_docs_test",
+        "//examples/rust:passing_test",
+        "//tests:check_test",
+        "//tests:notices_test",
+    ],
+)

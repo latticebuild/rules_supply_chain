@@ -8,11 +8,11 @@ Bazel rules for advisory indexing, dependency policy checks and third-party noti
 
 ## Setup
 
-Use Bazel 9.2 with Bzlmod. These source repositories have no registry release yet.
-Pin your chosen revision in your root MODULE.bazel:
+Use Bazel 9.2 with Bzlmod. Until the module is registered in the Bazel Central
+Registry, pin a source revision in your root MODULE.bazel:
 
 ```starlark
-bazel_dep(name = "latticebuild_supply_chain", version = "0.0.0")
+bazel_dep(name = "latticebuild_supply_chain", version = "0.1.0")
 git_override(
     module_name = "latticebuild_supply_chain",
     remote = "https://github.com/latticebuild/rules_supply_chain.git",
@@ -20,9 +20,7 @@ git_override(
 )
 ```
 
-Replace FULL_COMMIT_SHA with the full commit hash of that revision. Copy the
-Latticebuild dependency overrides from [MODULE.bazel](MODULE.bazel) into the
-consuming root too; overrides declared by a dependency do not propagate.
+Replace FULL_COMMIT_SHA with the full commit hash of that revision.
 
 ## Usage
 
@@ -59,6 +57,10 @@ under [the checker’s assets](supply_chain/private/tools/check-packages/assets/
 
 </details>
 
+## Documentation and examples
+
+See the [generated API reference](docs/README.md) and [runnable examples](examples/README.md).
+
 ## Development
 
 Install [Mise](https://mise.jdx.dev/), then prepare this checkout:
@@ -82,3 +84,8 @@ constraints, and [ARCHITECTURE.md](ARCHITECTURE.md) for implementation decisions
 ## License
 
 [Apache License 2.0](LICENSE).
+
+[Sponsor us](https://github.com/mathematic-inc) · [Discuss questions and ideas](https://github.com/latticebuild/rules_supply_chain/discussions)
+
+Pull requests are limited to repository collaborators. Use Discussions for bugs,
+feature requests and support. Changes merge as squash commits.

@@ -1,0 +1,15 @@
+{
+  "homepage": "https://github.com/latticebuild/rules_supply_chain",
+  "maintainers": [
+    {
+      "github": "jrandolf",
+      "github_user_id": 101637635,
+      "name": "Randolf J."
+    }
+  ],
+  "repository": [
+    "github:latticebuild/rules_supply_chain"
+  ],
+  "versions": [],
+  "yanked_versions": {}
+}

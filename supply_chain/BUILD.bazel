@@ -13,3 +13,8 @@ bzl_library(
         "//supply_chain/private:third_party_notices_bzl",
     ],
 )
+
+exports_files(
+    ["defs.bzl"],
+    visibility = ["//visibility:public"],
+)

@@ -2,3 +2,6 @@ common --enable_bzlmod
 common --incompatible_enforce_config_setting_visibility
 build --incompatible_config_setting_private_default_visibility
 test --test_output=errors
+
+# Rust doctest launchers use a runfiles tree, including on Windows.
+build --enable_runfiles

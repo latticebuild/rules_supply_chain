@@ -1,0 +1,21 @@
+filegroup(
+    name = "artifacts",
+    testonly = True,
+    srcs = ["//rust:program"] + select({
+        "@platforms//os:windows": [],
+        "//conditions:default": [
+            "//rust:notice_output",
+            "//rust:own_output",
+        ],
+    }),
+)
+
+test_suite(
+    name = "test",
+    tests = [
+        "//rust:build_docs_test",
+        "//rust:linked_docs_test",
+        "//rust:macro_docs_test",
+        "//rust:passing_test",
+    ],
+)

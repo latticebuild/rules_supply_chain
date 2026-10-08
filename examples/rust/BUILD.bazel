@@ -8,6 +8,7 @@ package(
     default_testonly = True,
     default_visibility = [
         "//:__pkg__",
+        "//examples:__pkg__",
         "//tests:__pkg__",
     ],
 )

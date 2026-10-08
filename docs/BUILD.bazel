@@ -1,0 +1,16 @@
+load("@stardoc//stardoc:stardoc.bzl", "stardoc")
+
+package(default_visibility = ["//visibility:public"])
+
+stardoc(
+    name = "api_api",
+    out = "api.generated.md",
+    input = "//supply_chain:defs.bzl",
+    stamp = 0,
+    deps = ["//supply_chain:defs"],
+)
+
+filegroup(
+    name = "api",
+    srcs = [":api_api"],
+)
